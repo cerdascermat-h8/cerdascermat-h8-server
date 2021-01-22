@@ -1,115 +1,58 @@
-if(process.env.NODE_ENV != 'development') {
-    require('dotenv').config()
-}
-
 const app = require('express')()
 const server = require('http').createServer(app)
 const io = require('socket.io')(server)
 const port = process.env.PORT || 3000
+const cors = require('cors')
+
+app.use(cors())
 
 const messages = [{
-    name : 'test',
-    message: 'server success connect'
+  name : 'welcome',
+  message: 'welcome!'
 }]
 
-const rooms = []
+let scoreBoard = []
 
-const player = [{
-    username : '',
-    score: 0
-}]
-
-io.on('connection', function(socket) {
-    console.log(`socket from server`)
-    socket.emit('message', messages)
-
-    socket.on('newPlayers', function(payload) {
-        console.log(payload)
-        player.push({
-            username : payload,
-            score: 0
-        })
-        io.emit('getPlayers', payload)
+io.on('connection', (socket) => {
+  console.log('socket io client connected')
+  socket.emit('init', messages)
+  socket.on('newPlayer', (payload) => {
+    // console.log(payload)
+    scoreBoard.push({
+      playerName: payload.name,
+      score: payload.score 
     })
-
-    socket.on('newRooms', function(payload) {
-        console.log(payload)
-        rooms.push({
-            name : ''
-        })
-        io.emit('getRooms', payload)
+    io.emit('playerInfo', scoreBoard)
+    socket.on('increaseScore', (payload) => {
+      console.log(payload, '<<<< increase score')
+      scoreBoard.forEach(player => {
+        if(player.playerName === payload.name) {
+          player.score += payload.score
+        }
+      })
+      console.log(scoreBoard)
+      io.emit('playerInfo', scoreBoard)
     })
+    socket.on('decreaseScore', (payload) => {
+      console.log(payload, '<<<< decrease score')
+      scoreBoard.forEach(player => {
+        if(player.playerName === payload.name) {
+          player.score -= payload.score
+        }
+      })
+      console.log(scoreBoard)
+      io.emit('playerInfo', scoreBoard)
+    })
+    // socket.broadcast.emit('gameOver', 'game telah selasai')
+    socket.on('gameOver', (payload) => {
+      // console.log(payload, '<<<<< game over')
+      const { playerName, currentScore } = payload
+      socket.broadcast.emit('gameOver', `game telah berakhir oleh ${playerName} dengan score ${currentScore}.`)
+      scoreBoard = []
+    })
+  })
 })
 
-server.listen(port, () => {
-    console.log(`Listen on port :` + port)
+server.listen(port, () =>{ 
+  console.log(`Listening on *:${port}`)
 })
-
-
-// const http = require('http')
-// const server = http.createServer(app)
-// const socket = require('socket.io')
-// const io = socket(server)
-
-///socket room
-
-// let users = []
-
-// const messages = {
-//     //rom name ex :
-//     newbie: [],
-//     skilled: [],
-//     proPlayer: [],
-//     nightmare: []
-// }
-
-// io.on('connection', socket => {
-//     socket.on('join server', (username) => {
-//         const user = {
-//             username,
-//             id : socket.id
-//         }
-//         users.push(user) // state users
-//         io.emit('new user', users)
-//     })
-
-//     socket.on('join room', (roomName, cb) => {
-//         socket.join(roomName)
-//         cb(messages[roomName])
-//         // socket.emit('has join', messages[roomName])
-//     })
-
-//     socket.on('send message', ({ content, to, sender, chatName, isChannel }) => {
-//         if(isChannel) {
-//             const payload = {
-//                 content, chatName, sender
-//             }
-
-//             socket.to(to).emit('new message', payload)
-//         } else {
-//             const payload = {
-//                 content, 
-//                 chatName : sender,
-//                 sender
-//             }
-//             socket.to(to).emit('new message', payload)
-//         }
-
-//         if (messages[chatName]) {
-//             messages[chatName].push({
-//                 sender,
-//                 content
-//             })
-//         }
-//     })
-
-//     socket.on('disconnect', () => {
-//         users = users.filter(u => u.id !== socket.id)
-//         io.emit('new user', users)
-//     })
-// })
-
-
-// app.listen(port,() => {
-//     console.log(`Listen on port ${port}`)
-// })
