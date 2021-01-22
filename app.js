@@ -2,6 +2,9 @@ const app = require('express')()
 const server = require('http').createServer(app)
 const io = require('socket.io')(server)
 const port = process.env.PORT || 3000
+const cors = require('cors')
+
+app.use(cors())
 
 const messages = [{
   name : 'welcome',
