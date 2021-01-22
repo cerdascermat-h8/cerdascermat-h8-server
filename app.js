@@ -12,9 +12,33 @@ const messages = [{
     message: 'server success connect'
 }]
 
+const rooms = []
+
+const player = [{
+    username : '',
+    score: 0
+}]
+
 io.on('connection', function(socket) {
     console.log(`socket from server`)
     socket.emit('message', messages)
+
+    socket.on('newPlayers', function(payload) {
+        console.log(payload)
+        player.push({
+            username : payload,
+            score: 0
+        })
+        io.emit('getPlayers', payload)
+    })
+
+    socket.on('newRooms', function(payload) {
+        console.log(payload)
+        rooms.push({
+            name : ''
+        })
+        io.emit('getRooms', payload)
+    })
 })
 
 server.listen(port, () => {
